@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Conway's Game of Life</title>
+    <link rel="stylesheet" type="text/css" href="css/site.css">
+</head>
+<body>
+<div class="options-bar container-border">
+    <div class="container container-border">
+        <div>
+            <label for="gridSize">Grid Size:</label>
+            <select id="gridSize">
+                <option value="50">50x50</option>
+                <option value="150">150x150</option>
+                <option value="250">250x250</option>
+                <option value="350" selected="selected">350x350</option>
+                <option value="500">500x500</option>
+                <option value="1000">1000x1000</option>
+            </select>
+        </div>
+        <div>
+            <label for="delay">Delay per Refresh:</label>
+            <select id="delay">
+                <option value="0">1 Millisecond</option>
+                <option value="50" selected="selected">50 Milliseconds</option>
+                <option value="250">250 Milliseconds</option>
+                <option value="500">500 Milliseconds</option>
+                <option value="1000">1 Second</option>
+                <option value="2000">2 Seconds</option>
+            </select>
+        </div>
+        <div>
+            <label for="patterns"> <span class="tip">*</span>Patterns:</label>
+            <select id="patterns">
+            </select>
+        </div>
+        <div class="tip tip-desc">*Click a cell to add the selected pattern</div>
+    </div>
+
+    <div class="container container-border">
+        <div>
+            <span>Cell: </span>
+            <span id="mouseCell"></span>
+        </div>
+        <div>
+            <span>Cell Index: </span>
+            <span id="mouseIndex"></span>
+        </div>
+
+        <button id="run">run</button>
+        <button id="pause">pause</button>
+        <button id="clear">clear</button>
+    </div>
+    <div class="container container-border">
+        <div>
+            <a href="http://www.conwaylife.com/wiki/Conway's_Game_of_Life" target="_blank">Conway's Game of Life (LifeWiki)</a>
+        </div>
+        <div>
+            <a href="http://www.wikipedia.org/wiki/Conway%27s_Game_of_Life" target="_blank">Conway's Game of Life (Wikipedia)</a>
+        </div>
+    </div>
+</div>
+<div class="boardContainer">
+    <canvas id="theBoard"></canvas>
+</div>
+<script src="js/moore-sof.conways-life-game.js"></script>
+<script>
+    var sim = new Simulation();
+
+    sim.clear();
+
+    document.getElementById('run').onclick = function () {
+        sim.run();
+    };
+    document.getElementById('pause').onclick = function () {
+        sim.pause();
+    };
+    document.getElementById('clear').onclick = function () {
+        sim.clear();
+    };
+    document.getElementById('gridSize').onchange = function () {
+        sim.Options.setGridSize(this.options[this.selectedIndex].value);
+        sim.clear();
+    };
+    document.getElementById('patterns').onchange = function () {
+        sim.Options.setPattern(this.selectedIndex);
+    };
+    document.getElementById('delay').onchange = function () {
+        sim.Options.setRefreshDelayInterval(this.options[this.selectedIndex].value);
+        sim.run();
+    };
+</script>
+</body>
+</html>
