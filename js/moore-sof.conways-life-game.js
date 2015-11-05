@@ -88,14 +88,12 @@ function Simulation() {
             var canvasRect = canvas.getBoundingClientRect();
 
             return {
-                //x: e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - canvasRect.left,
-                //y: e.clientY + document.body.scrollTop + document.documentElement.scrollTop - canvasRect.top
-                 x: e.clientX - canvasRect.left,
+                x: e.clientX - canvasRect.left,
                 y: e.clientY - canvasRect.top
             };
         }
 
-        function clearCellInfo(){
+        function clearCellInfo() {
             mouseCell.innerText = '';
             indexCell.innerText = '';
         }
@@ -115,10 +113,10 @@ function Simulation() {
             cell = Grid.Cell.getTopLeft_byLocation(cellLoc.x, cellLoc.y);
             cellState = Grid.Cell.getState(Grid.Cell.getIndex_byTopLeft(cell.top, cell.left));
 
-            if(cellLoc.x > options.get.gridSize || cellLoc.x < 0
-                || cellLoc.y > options.get.gridSize || cellLoc.y < 0){
+            if (cellLoc.x > options.get.gridSize || cellLoc.x < 0
+                || cellLoc.y > options.get.gridSize || cellLoc.y < 0) {
                 clearCellInfo();
-            }else{
+            } else {
                 mouseCell.innerText = '(' + cellLoc.x + ', ' + cellLoc.y + ')';
                 indexCell.innerText = cellIndex.toLocaleString();
             }
@@ -271,16 +269,18 @@ function Simulation() {
                     Grid.Cell.toggleState(toggleCells[x]);
                 }
 
-                function applyBirthLaw(livingNeighbors, cellIndex){
+                function applyBirthLaw(livingNeighbors, cellIndex) {
                     if (livingNeighbors === 3) {
                         toggleCells.pushUnique(cellIndex);
                     }
                 }
-                function applyDeathLaw(livingNeighbors, cellIndex){
+
+                function applyDeathLaw(livingNeighbors, cellIndex) {
                     if (livingNeighbors > 3 || livingNeighbors < 2) {
                         toggleCells.pushUnique(cellIndex);
                     }
                 }
+
                 function getNeighbors(centerCell) {
                     var north, west, east, south;
 
@@ -300,6 +300,7 @@ function Simulation() {
                         south + east
                     ];
                 }
+
                 function getLivingNeighbors(centerCell) {
                     var north, west, east, south;
 
