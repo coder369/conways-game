@@ -9,10 +9,12 @@ function Simulation() {
 
     var iterator = null;
 
+
     /*****************
      ***  Options  ***
      *****************/
-    var Options = function () {
+    var Options = (function(){
+
         var opts = {
             gridSize: 350,
             milliseconds: 50,
@@ -41,7 +43,7 @@ function Simulation() {
 
                 patternsSelect.appendChild(new Option('-- select a pattern --', 0));
 
-                for (var i = 0; i < opts.patterns.length; i++) {
+                for (var i = 0, len = opts.patterns.length; i < len; i++) {
                     patternsSelect.appendChild(new Option(opts.patterns[i].name, i));
                 }
             } else {
@@ -65,14 +67,13 @@ function Simulation() {
             },
             get: opts
         }
-    };
-    var options = new Options();
+    })();
 
 
     /****************
      ***  Canvas  ***
      ****************/
-    var Screen = function () {
+    var Screen = (function () {
         var mouseCell = document.getElementById('mouseCell');
         var indexCell = document.getElementById('mouseIndex');
         var canvas = document.getElementById('theBoard');
@@ -113,8 +114,8 @@ function Simulation() {
             cell = Grid.Cell.getTopLeft_byLocation(cellLoc.x, cellLoc.y);
             cellState = Grid.Cell.getState(Grid.Cell.getIndex_byTopLeft(cell.top, cell.left));
 
-            if (cellLoc.x > options.get.gridSize || cellLoc.x < 0
-                || cellLoc.y > options.get.gridSize || cellLoc.y < 0) {
+            if (cellLoc.x > Options.get.gridSize || cellLoc.x < 0
+                || cellLoc.y > Options.get.gridSize || cellLoc.y < 0) {
                 clearCellInfo();
             } else {
                 mouseCell.innerText = '(' + cellLoc.x + ', ' + cellLoc.y + ')';
@@ -126,10 +127,10 @@ function Simulation() {
             var mouseLoc = getMouseLocation(evt);
             var cellLoc = Grid.Cell.getLocation_byMouseLocation(mouseLoc.x, mouseLoc.y);
 
-            if (options.get.currentPattern === -1) return;
+            if (Options.get.currentPattern === -1) return;
 
-            for (var i = 0; i < options.get.currentPattern.length; i++) {
-                var cellIndex = Grid.Cell.getIndex_byLocation(cellLoc.x + options.get.currentPattern[i].x, cellLoc.y + options.get.currentPattern[i].y);
+            for (var i = 0, len = Options.get.currentPattern.length; i < len; i++) {
+                var cellIndex = Grid.Cell.getIndex_byLocation(cellLoc.x + Options.get.currentPattern[i].x, cellLoc.y + Options.get.currentPattern[i].y);
                 Grid.Cell.setState(cellIndex, 1);
             }
         }, false);
@@ -151,7 +152,7 @@ function Simulation() {
                 ctx.fillRect(cellLocation.x, cellLocation.y, wh, wh);
             },
             printGrid: function () {
-                var gridCanvasSize = (options.get.gridSize * Grid.cellSize) + (Grid.cellSize * 2);
+                var gridCanvasSize = (Options.get.gridSize * Grid.cellSize) + (Grid.cellSize * 2);
                 this.setCanvasSize(gridCanvasSize);
 
                 for (var x = Grid.cellOffset; x < gridCanvasSize; x += Grid.cellSize) {
@@ -168,8 +169,8 @@ function Simulation() {
                 ctx.stroke();
             }
         }
-    };
-    var screen = new Screen();
+    })();
+
 
     /**************
      ***  Grid  ***
@@ -178,15 +179,15 @@ function Simulation() {
         init: function () {
             this.cellSize = 4;
             this.cellOffset = .5;
-            this.cells = new Int8Array(options.get.gridSize + (options.get.gridSize * options.get.gridSize));
+            this.cells = new Int8Array(Options.get.gridSize + (Options.get.gridSize * Options.get.gridSize));
             this.lastCellIndex = this.cells.length - 1;
 
             for (var i = 0; i <= this.lastCellIndex; i++) {
                 this.cells[i] = 0;
             }
 
-            screen.clearCanvas();
-            screen.printGrid();
+            Screen.clearCanvas();
+            Screen.printGrid();
 
             /**************
              ***  Cell  ***
@@ -194,8 +195,8 @@ function Simulation() {
             this.Cell = {
                 getLocation_byIndex: function (cellIndex) {
                     return {
-                        x: ((cellIndex % options.get.gridSize) * Grid.cellSize) + 1,
-                        y: ((Math.floor(cellIndex / options.get.gridSize) * Grid.cellSize)) + 1
+                        x: ((cellIndex % Options.get.gridSize) * Grid.cellSize) + 1,
+                        y: ((Math.floor(cellIndex / Options.get.gridSize) * Grid.cellSize)) + 1
                     }
                 },
                 getLocation_byMouseLocation: function (mouseX, mouseY) {
@@ -211,10 +212,10 @@ function Simulation() {
                     }
                 },
                 getIndex_byTopLeft: function (top, left) {
-                    return (((top + left * options.get.gridSize) - (options.get.gridSize)) / Grid.cellSize) + options.get.gridSize;
+                    return (((top + left * Options.get.gridSize) - (Options.get.gridSize)) / Grid.cellSize) + Options.get.gridSize;
                 },
                 getIndex_byLocation: function (x, y) {
-                    return (x + y * options.get.gridSize) - (options.get.gridSize) + options.get.gridSize;
+                    return (x + y * Options.get.gridSize) - (Options.get.gridSize) + Options.get.gridSize;
                 },
                 getState: function (cellIndex) {
                     if (cellIndex < 0 || cellIndex > Grid.cells.length) return 0;
@@ -223,7 +224,7 @@ function Simulation() {
                 },
                 setState: function (cellIndex, cellState) {
                     Grid.cells[cellIndex] = cellState;
-                    screen.printCell(cellIndex, cellState);
+                    Screen.printCell(cellIndex, cellState);
                 },
                 toggleState: function (cellIndex) {
                     var cellState = this.getState(cellIndex);
@@ -233,6 +234,7 @@ function Simulation() {
         }
     };
 
+    
     return {
         run: function () {
             var iterations = 0;
@@ -242,7 +244,7 @@ function Simulation() {
             iterator = setInterval(function () {
                 nextGeneration();
                 iterations++;
-            }, options.get.milliseconds);
+            }, Options.get.milliseconds);
 
             function nextGeneration() {
                 var toggleCells = [];
@@ -253,7 +255,7 @@ function Simulation() {
 
                         applyDeathLaw(getLivingNeighbors(i), i);
 
-                        for (var y = 0; y < neighbors.length; y++) {
+                        for (var y = 0, len = neighbors.length; y < len; y++) {
                             var cellIndex = neighbors[y];
 
                             if(Grid.Cell.getState(cellIndex)){
@@ -265,7 +267,7 @@ function Simulation() {
                     }
                 }
 
-                for (var x = 0; x < toggleCells.length; x++) {
+                for (var x = 0, len = toggleCells.length; x < len; x++) {
                     Grid.Cell.toggleState(toggleCells[x]);
                 }
 
@@ -284,8 +286,8 @@ function Simulation() {
                 function getNeighbors(centerCell) {
                     var north, west, east, south;
 
-                    north = centerCell - options.get.gridSize;
-                    south = centerCell + options.get.gridSize;
+                    north = centerCell - Options.get.gridSize;
+                    south = centerCell + Options.get.gridSize;
                     east = 1;
                     west = -1;
 
@@ -304,8 +306,8 @@ function Simulation() {
                 function getLivingNeighbors(centerCell) {
                     var north, west, east, south;
 
-                    north = centerCell - options.get.gridSize;
-                    south = centerCell + options.get.gridSize;
+                    north = centerCell - Options.get.gridSize;
+                    south = centerCell + Options.get.gridSize;
                     east = 1;
                     west = -1;
 
@@ -327,7 +329,7 @@ function Simulation() {
             this.pause();
             Grid.init();
         },
-        Options: options
+        Options: Options
     }
 }
 
