@@ -1,6 +1,8 @@
-/**
- * Created by moore on 10/21/2015.
- */
+/*********************************************
+ * Created by:      Benjamin Moore
+ * Date Created:    10/21/2015
+ * Email:           Benjamin@MooreSof.com
+ ********************************************/
 
 /********************
  ***  Simulation  ***
@@ -234,7 +236,7 @@ function Simulation() {
         }
     };
 
-    
+
     return {
         run: function () {
             var iterations = 0;
