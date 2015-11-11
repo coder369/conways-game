@@ -243,21 +243,19 @@ function Simulation() {
 
             this.pause();
 
-            iterator = setInterval(function () {
-                nextGeneration();
-                iterations++;
-            }, Options.get.milliseconds);
+            iterator = setInterval(nextGeneration, Options.get.milliseconds);
 
             function nextGeneration() {
                 var toggleCells = [];
+                iterations++;
 
-                for (var i = 0; i <= Grid.lastCellIndex; i++) {
+                for (var i = 0, len1 = Grid.lastCellIndex; i <= len1; i++) {
                     if (Grid.Cell.getState(i)) {
                         var neighbors = getNeighbors(i);
 
                         applyDeathLaw(getLivingNeighbors(i), i);
 
-                        for (var y = 0, len = neighbors.length; y < len; y++) {
+                        for (var y = 0, len2 = neighbors.length; y < len2; y++) {
                             var cellIndex = neighbors[y];
 
                             if(Grid.Cell.getState(cellIndex)){
