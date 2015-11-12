@@ -15,7 +15,7 @@ function Simulation() {
     /*****************
      ***  Options  ***
      *****************/
-    var Options = (function(){
+    var Options = (function () {
 
         var opts = {
             gridSize: 350,
@@ -41,13 +41,16 @@ function Simulation() {
                 var data = JSON.parse(request.responseText);
                 opts.patterns = data.patterns;
 
-                var patternsSelect = document.getElementById('patterns');
+                var patternsSelect = document.getElementById('patterns'),
+                    docFrag = document.createDocumentFragment();
 
-                patternsSelect.appendChild(new Option('-- select a pattern --', 0));
+                docFrag.appendChild(new Option('-- select a pattern --', 0));
 
                 for (var i = 0, len = opts.patterns.length; i < len; i++) {
-                    patternsSelect.appendChild(new Option(opts.patterns[i].name, i));
+                    docFrag.appendChild(new Option(opts.patterns[i].name, i));
                 }
+
+                patternsSelect.appendChild(docFrag);
             } else {
                 opts.patterns = [];
             }
@@ -81,59 +84,48 @@ function Simulation() {
         var canvas = document.getElementById('theBoard');
         var ctx = canvas.getContext('2d');
 
-        var cellState = 0,
-            cell = {
-                left: 1,
-                top: 1
-            };
-
-        function getMouseLocation(e) {
-            var canvasRect = canvas.getBoundingClientRect();
-
-            return {
-                x: e.clientX - canvasRect.left,
-                y: e.clientY - canvasRect.top
-            };
-        }
-
-        function clearCellInfo() {
-            mouseCell.innerText = '';
-            indexCell.innerText = '';
-        }
-
         /***********************
          ***  Canvas Events  ***
          ***********************/
         canvas.addEventListener('mouseleave', function () {
-            clearCellInfo();
+            mouseCell.innerText = '';
+            indexCell.innerText = '';
         }, false);
 
-        canvas.addEventListener('mousemove', function (evt) {
-            var mouseLoc = getMouseLocation(evt);
-            var cellLoc = Grid.Cell.getLocation_byMouseLocation(mouseLoc.x, mouseLoc.y);
-            var cellIndex = Grid.Cell.getIndex_byLocation(cellLoc.x, cellLoc.y);
+        canvas.addEventListener('mousemove', function (e) {
+            var canvasRect = canvas.getBoundingClientRect();
 
-            cell = Grid.Cell.getTopLeft_byLocation(cellLoc.x, cellLoc.y);
-            cellState = Grid.Cell.getState(Grid.Cell.getIndex_byTopLeft(cell.top, cell.left));
+            var x = Math.floor((e.clientX - canvasRect.left) / Grid.cellSize),
+                y = Math.floor((e.clientY - canvasRect.top) / Grid.cellSize);
 
-            if (cellLoc.x > Options.get.gridSize || cellLoc.x < 0
-                || cellLoc.y > Options.get.gridSize || cellLoc.y < 0) {
-                clearCellInfo();
-            } else {
-                mouseCell.innerText = '(' + cellLoc.x + ', ' + cellLoc.y + ')';
-                indexCell.innerText = cellIndex.toLocaleString();
+            var cellIndex =  x + y * Options.get.gridSize;
+
+            if (cellIndex < 0 || cellIndex > Grid.lastCellIndex){
+                mouseCell.innerText = '';
+                indexCell.innerText = '';
+            }else{
+                mouseCell.innerText = '(' + x + ', ' + y + ')';
+                indexCell.innerText = cellIndex;
             }
         }, false);
 
-        canvas.addEventListener('click', function (evt) {
-            var mouseLoc = getMouseLocation(evt);
-            var cellLoc = Grid.Cell.getLocation_byMouseLocation(mouseLoc.x, mouseLoc.y);
+        canvas.addEventListener('click', function (e) {
+            var canvasRect = canvas.getBoundingClientRect();
+
+            var x = Math.floor((e.clientX - canvasRect.left) / Grid.cellSize),
+                y = Math.floor((e.clientY - canvasRect.top) / Grid.cellSize);
+
+            var cellIndex = x + y * Options.get.gridSize;
+
+            var cell = Grid.cells[cellIndex];
 
             if (Options.get.currentPattern === -1) return;
 
-            for (var i = 0, len = Options.get.currentPattern.length; i < len; i++) {
-                var cellIndex = Grid.Cell.getIndex_byLocation(cellLoc.x + Options.get.currentPattern[i].x, cellLoc.y + Options.get.currentPattern[i].y);
-                Grid.Cell.setState(cellIndex, 1);
+            var pattern = Options.get.currentPattern;
+
+            for (var i = 0, l = pattern.length; i < l; i++) {
+                var patternCell = pattern[i];
+                cell.toggleRelativeCell(patternCell.x, patternCell.y);
             }
         }, false);
 
@@ -145,16 +137,16 @@ function Simulation() {
             clearCanvas: function () {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             },
-            printCell: function (cellIndex, cellState) {
-                var cellLocation = Grid.Cell.getLocation_byIndex(cellIndex);
+            printCell: function (cell) {
+                var cellCanvasLocation = cell.getCanvasLocation();
 
-                var wh = Grid.cellSize - 1;
+                var wh = Grid.cellSize - Grid.borderWidth;
 
-                ctx.fillStyle = cellState ? '#88C6DB' : '#fff';
-                ctx.fillRect(cellLocation.x, cellLocation.y, wh, wh);
+                ctx.fillStyle = cell.state ? '#88C6DB' : '#fff';
+                ctx.fillRect(cellCanvasLocation.left, cellCanvasLocation.top, wh, wh);
             },
             printGrid: function () {
-                var gridCanvasSize = (Options.get.gridSize * Grid.cellSize) + (Grid.cellSize * 2);
+                var gridCanvasSize = (Options.get.gridSize * Grid.cellSize) + Grid.cellOffset;
                 this.setCanvasSize(gridCanvasSize);
 
                 for (var x = Grid.cellOffset; x < gridCanvasSize; x += Grid.cellSize) {
@@ -181,61 +173,105 @@ function Simulation() {
         init: function () {
             this.cellSize = 4;
             this.cellOffset = .5;
-            this.cells = new Int8Array(Options.get.gridSize + (Options.get.gridSize * Options.get.gridSize));
+            this.borderWidth = this.cellOffset * 2;
+            this.cells = new Array(Options.get.gridSize + (Options.get.gridSize * Options.get.gridSize));
             this.lastCellIndex = this.cells.length - 1;
 
             for (var i = 0; i <= this.lastCellIndex; i++) {
-                this.cells[i] = 0;
+                this.cells[i] = new GridCell(i);
             }
 
             Screen.clearCanvas();
             Screen.printGrid();
-
-            /**************
-             ***  Cell  ***
-             **************/
-            this.Cell = {
-                getLocation_byIndex: function (cellIndex) {
-                    return {
-                        x: ((cellIndex % Options.get.gridSize) * Grid.cellSize) + 1,
-                        y: ((Math.floor(cellIndex / Options.get.gridSize) * Grid.cellSize)) + 1
-                    }
-                },
-                getLocation_byMouseLocation: function (mouseX, mouseY) {
-                    return {
-                        x: Math.floor(mouseX / Grid.cellSize),
-                        y: Math.floor(mouseY / Grid.cellSize)
-                    }
-                },
-                getTopLeft_byLocation: function (locX, locY) {
-                    return {
-                        left: locX * Grid.cellSize + 1,
-                        top: locY * Grid.cellSize + 1
-                    }
-                },
-                getIndex_byTopLeft: function (top, left) {
-                    return (((top + left * Options.get.gridSize) - (Options.get.gridSize)) / Grid.cellSize) + Options.get.gridSize;
-                },
-                getIndex_byLocation: function (x, y) {
-                    return (x + y * Options.get.gridSize) - (Options.get.gridSize) + Options.get.gridSize;
-                },
-                getState: function (cellIndex) {
-                    if (cellIndex < 0 || cellIndex > Grid.cells.length) return 0;
-
-                    return Grid.cells[cellIndex];
-                },
-                setState: function (cellIndex, cellState) {
-                    Grid.cells[cellIndex] = cellState;
-                    Screen.printCell(cellIndex, cellState);
-                },
-                toggleState: function (cellIndex) {
-                    var cellState = this.getState(cellIndex);
-                    this.setState(cellIndex, !cellState);
-                }
-            };
         }
     };
 
+    /******************
+     ***  GridCell  ***
+     ******************/
+    var GridCell = function (cellIndex) {
+        this.state = 0;
+        this.cellIndex = cellIndex;
+    };
+
+    GridCell.prototype.getLocation = function(){
+        return {
+            x: this.cellIndex % Options.get.gridSize,
+            y: Math.floor(this.cellIndex / Options.get.gridSize)
+        }
+    };
+
+    GridCell.prototype.getCanvasLocation = function(){
+        var cellLocation = this.getLocation();
+        return {
+            left: cellLocation.x * Grid.cellSize + Grid.borderWidth,
+            top: cellLocation.y * Grid.cellSize + Grid.borderWidth
+        }
+    };
+
+    GridCell.prototype.getNeighbors = function(){
+        var north, west, east, south;
+
+        north = this.cellIndex - Options.get.gridSize;
+        south = this.cellIndex + Options.get.gridSize;
+        east = 1;
+        west = -1;
+
+        return [
+            north + west,
+            north,
+            north + east,
+            this.cellIndex + west,
+            this.cellIndex + east,
+            south + west,
+            south,
+            south + east
+        ];
+    };
+
+    GridCell.prototype.getLivingNeighborsCount = function () {
+        var neighbors = this.getNeighbors(),
+            neighborsCount = 8,
+            livingNeighbors = 0,
+            lastCellIndex = Grid.lastCellIndex;
+
+        while (neighborsCount--) {
+            var neighborCellIndex = neighbors[neighborsCount];
+
+            livingNeighbors += neighborCellIndex > 0 && neighborCellIndex < lastCellIndex && Grid.cells[neighborCellIndex].state ? 1 : 0;
+        }
+
+        return livingNeighbors;
+    };
+
+    GridCell.prototype.toggleRelativeCell = function (xOffset, yOffset) {
+        var gridSize = Options.get.gridSize;
+        var cellLocation = this.getLocation();
+        var cellIndex = (cellLocation.x+xOffset) + (cellLocation.y+yOffset) * gridSize;
+        var cell = Grid.cells[cellIndex];
+
+        cell.state = !cell.state;
+
+        Screen.printCell(cell);
+    };
+
+    GridCell.prototype.toggleCell = function () {
+        this.state = !this.state;
+
+        Screen.printCell(this);
+    };
+
+    GridCell.prototype.doesBirthLawApply = function() {
+        var livingNeighbors = this.getLivingNeighborsCount();
+
+        return (livingNeighbors === 3);
+    };
+
+    GridCell.prototype.doesDeathLawApply = function() {
+        var livingNeighbors = this.getLivingNeighborsCount();
+
+        return (livingNeighbors > 3 || livingNeighbors < 2);
+    };
 
     return {
         run: function () {
@@ -246,79 +282,47 @@ function Simulation() {
             iterator = setInterval(nextGeneration, Options.get.milliseconds);
 
             function nextGeneration() {
-                var toggleCells = [];
+                var toggleCells = [],
+                    gridCellsCount = Grid.lastCellIndex + 1,
+                    gridLastCellIndex = Grid.lastCellIndex;
+
+
                 iterations++;
 
-                for (var i = 0, len1 = Grid.lastCellIndex; i <= len1; i++) {
-                    if (Grid.Cell.getState(i)) {
-                        var neighbors = getNeighbors(i);
+                while (gridCellsCount--) {
+                    var currentCell = Grid.cells[gridCellsCount];
+                    if (currentCell.state) {
 
-                        applyDeathLaw(getLivingNeighbors(i), i);
+                        if(currentCell.doesDeathLawApply()){
+                            if(toggleCells.indexOf(currentCell) === -1) {
+                                toggleCells.push(currentCell);
+                            }
+                        }
 
-                        for (var y = 0, len2 = neighbors.length; y < len2; y++) {
-                            var cellIndex = neighbors[y];
+                        var neighbors = currentCell.getNeighbors();
+                        var neighborCellsCount = 8;
 
-                            if(Grid.Cell.getState(cellIndex)){
-                                applyDeathLaw(getLivingNeighbors(cellIndex), cellIndex);
-                            }else{
-                                applyBirthLaw(getLivingNeighbors(cellIndex), cellIndex);
+                        while (--neighborCellsCount) {
+                            var cellIndex = neighbors[neighborCellsCount];
+
+                            if(cellIndex > 0 && cellIndex < gridLastCellIndex) {
+
+                                var neighborCell = Grid.cells[cellIndex];
+                                var toggle = neighborCell.state ? neighborCell.doesDeathLawApply() : neighborCell.doesBirthLawApply();
+
+                                if (toggle) {
+                                    if (toggleCells.indexOf(neighborCell) === -1) {
+                                        toggleCells.push(neighborCell);
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                for (var x = 0, len = toggleCells.length; x < len; x++) {
-                    Grid.Cell.toggleState(toggleCells[x]);
-                }
-
-                function applyBirthLaw(livingNeighbors, cellIndex) {
-                    if (livingNeighbors === 3) {
-                        toggleCells.pushUnique(cellIndex);
-                    }
-                }
-
-                function applyDeathLaw(livingNeighbors, cellIndex) {
-                    if (livingNeighbors > 3 || livingNeighbors < 2) {
-                        toggleCells.pushUnique(cellIndex);
-                    }
-                }
-
-                function getNeighbors(centerCell) {
-                    var north, west, east, south;
-
-                    north = centerCell - Options.get.gridSize;
-                    south = centerCell + Options.get.gridSize;
-                    east = 1;
-                    west = -1;
-
-                    return [
-                        north + west,
-                        north,
-                        north + east,
-                        centerCell + west,
-                        centerCell + east,
-                        south + west,
-                        south,
-                        south + east
-                    ];
-                }
-
-                function getLivingNeighbors(centerCell) {
-                    var north, west, east, south;
-
-                    north = centerCell - Options.get.gridSize;
-                    south = centerCell + Options.get.gridSize;
-                    east = 1;
-                    west = -1;
-
-                    return Grid.Cell.getState(north + west)
-                        + Grid.Cell.getState(north)
-                        + Grid.Cell.getState(north + east)
-                        + Grid.Cell.getState(centerCell + west)
-                        + Grid.Cell.getState(centerCell + east)
-                        + Grid.Cell.getState(south + west)
-                        + Grid.Cell.getState(south)
-                        + Grid.Cell.getState(south + east);
+                var toggledCellsCount = toggleCells.length;
+                while (toggledCellsCount--) {
+                    toggleCells[toggledCellsCount].toggleCell();
                 }
             }
         },
@@ -332,18 +336,6 @@ function Simulation() {
         Options: Options
     }
 }
-
-/*************************
- *** Helper Prototypes ***
- *************************/
-Array.prototype.pushUnique = function (item) {
-    if (this.indexOf(item) == -1) {
-        this.push(item);
-        return true;
-    }
-    return false;
-};
-
 
 
 
