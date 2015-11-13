@@ -98,12 +98,12 @@ function Simulation() {
             var x = Math.floor((e.clientX - canvasRect.left) / Grid.cellSize),
                 y = Math.floor((e.clientY - canvasRect.top) / Grid.cellSize);
 
-            var cellIndex =  x + y * Options.get.gridSize;
+            var cellIndex = x + y * Options.get.gridSize;
 
-            if (cellIndex < 0 || cellIndex > Grid.lastCellIndex){
+            if (cellIndex < 0 || cellIndex > Grid.lastCellIndex) {
                 mouseCell.innerText = '';
                 indexCell.innerText = '';
-            }else{
+            } else {
                 mouseCell.innerText = '(' + x + ', ' + y + ')';
                 indexCell.innerText = cellIndex;
             }
@@ -194,14 +194,14 @@ function Simulation() {
         this.cellIndex = cellIndex;
     };
 
-    GridCell.prototype.getLocation = function(){
+    GridCell.prototype.getLocation = function () {
         return {
             x: this.cellIndex % Options.get.gridSize,
             y: Math.floor(this.cellIndex / Options.get.gridSize)
         }
     };
 
-    GridCell.prototype.getCanvasLocation = function(){
+    GridCell.prototype.getCanvasLocation = function () {
         var cellLocation = this.getLocation();
         return {
             left: cellLocation.x * Grid.cellSize + Grid.borderWidth,
@@ -209,7 +209,7 @@ function Simulation() {
         }
     };
 
-    GridCell.prototype.getNeighbors = function(){
+    GridCell.prototype.getNeighbors = function () {
         var north, west, east, south;
 
         north = this.cellIndex - Options.get.gridSize;
@@ -247,7 +247,7 @@ function Simulation() {
     GridCell.prototype.toggleRelativeCell = function (xOffset, yOffset) {
         var gridSize = Options.get.gridSize;
         var cellLocation = this.getLocation();
-        var cellIndex = (cellLocation.x+xOffset) + (cellLocation.y+yOffset) * gridSize;
+        var cellIndex = (cellLocation.x + xOffset) + (cellLocation.y + yOffset) * gridSize;
         var cell = Grid.cells[cellIndex];
 
         cell.state = !cell.state;
@@ -261,13 +261,13 @@ function Simulation() {
         Screen.printCell(this);
     };
 
-    GridCell.prototype.doesBirthLawApply = function() {
+    GridCell.prototype.doesBirthLawApply = function () {
         var livingNeighbors = this.getLivingNeighborsCount();
 
         return (livingNeighbors === 3);
     };
 
-    GridCell.prototype.doesDeathLawApply = function() {
+    GridCell.prototype.doesDeathLawApply = function () {
         var livingNeighbors = this.getLivingNeighborsCount();
 
         return (livingNeighbors > 3 || livingNeighbors < 2);
@@ -286,15 +286,14 @@ function Simulation() {
                     gridCellsCount = Grid.lastCellIndex + 1,
                     gridLastCellIndex = Grid.lastCellIndex;
 
-
                 iterations++;
 
                 while (gridCellsCount--) {
                     var currentCell = Grid.cells[gridCellsCount];
                     if (currentCell.state) {
 
-                        if(currentCell.doesDeathLawApply()){
-                            if(toggleCells.indexOf(currentCell) === -1) {
+                        if (toggleCells.indexOf(currentCell) === -1) {
+                            if (currentCell.doesDeathLawApply()) {
                                 toggleCells.push(currentCell);
                             }
                         }
@@ -305,13 +304,15 @@ function Simulation() {
                         while (--neighborCellsCount) {
                             var cellIndex = neighbors[neighborCellsCount];
 
-                            if(cellIndex > 0 && cellIndex < gridLastCellIndex) {
+                            if (cellIndex > 0 && cellIndex < gridLastCellIndex) {
 
                                 var neighborCell = Grid.cells[cellIndex];
-                                var toggle = neighborCell.state ? neighborCell.doesDeathLawApply() : neighborCell.doesBirthLawApply();
 
-                                if (toggle) {
-                                    if (toggleCells.indexOf(neighborCell) === -1) {
+                                if (toggleCells.indexOf(neighborCell) === -1) {
+
+                                    var toggle = neighborCell.state ? neighborCell.doesDeathLawApply() : neighborCell.doesBirthLawApply();
+
+                                    if (toggle) {
                                         toggleCells.push(neighborCell);
                                     }
                                 }
